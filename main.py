@@ -11,6 +11,8 @@ from tkinter import messagebox
 
 # ARCHIVOS
 from Basics.grafo import grafo
+from Basics.PositionDictionary import posiciones
+from Basics.BusquedasDictionary import ProcesosDiccionario as dictionary
 from Busquedas.Informadas.busqueda_amplitud import amplitud
 from Busquedas.Informadas.busqueda_profundida import profundida
 from Busquedas.Informadas.busqueda_coste import coste
@@ -23,28 +25,17 @@ class GraphTraversalApp:
         self.root.state('zoomed')  # Maximizar la ventana
 
         self.graph = self.create_graph()
-        # self.pos = nx.spring_layout(self.graph, k=4, iterations=1000)  # Posiciones de los nodos para el dibujo
-        self.pos = {
-    'boqueron': [-0.528, -0.720],
-    'villa mery': [-0.528, -0.512],
-    'terrazas boqueron': [-0.409, -0.478],
-    'jazmin': [-0.071, -0.090],
-    'la isla': [-0.015, -0.166],
-    'miramar': [0.721, 0.203],
-    'albania': [0.053, -0.377],
-    'la union': [0.164, 0.051],
-    'darlo echandia': [0.080, 0.195],
-    'granada': [0.443, 0.291],
-    'san isidro': [0.464, 0.590],
-    'colina 1': [0.311, 0.824],
-    'colina 2': [0.077, 0.841],
-    'cerros granate': [0.800, 0.841]
-}
+        self.pos = posiciones()
 
         self.canvas = None
         self.show_image = tk.BooleanVar()
         self.busqueda_selected_key = ''
         self.labelDistancia = None
+
+        # Crear un marco para contener los controles
+        self.frame = ttk.Frame(self.root)
+        self.frame.pack(pady=10)
+
 
         self.create_widgets()
         self.draw_graph()
@@ -66,51 +57,23 @@ class GraphTraversalApp:
         nodos = list(grafo().keys())
         
         # OPCIONES PARA BUSQUEDA
-        busquedas = {   'BFS'   : 'Búsqueda en Amplitud',
-                        'DFS'   : 'Búsqueda en Profundidad',
-                        'UCS'   : 'Búsqueda de Coste Uniforme',
-                        'IDDFS' : 'Búsqueda en Profundidad Iterativa' }
+        dictionary.load_dictionary()
+        busquedasInformadas = dictionary.get_by_tipo("INFORMADA")
 
-        # Crear un marco para contener los controles
-        frame = ttk.Frame(self.root)
-        frame.pack(pady=10)
+        self.load_busquedas(busquedasInformadas)
+
 
         # Crear etiquetas y combobox para el nodo de inicio
-        ttk.Label(frame, text="Nodo de Inicio:").grid(row=0, column=0, padx=5, pady=5)
-        self.start_combobox = ttk.Combobox(frame, values=nodos)
+        ttk.Label(self.frame, text="Nodo de Inicio:").grid(row=0, column=0, padx=5, pady=5)
+        self.start_combobox = ttk.Combobox(self.frame, values=nodos)
         self.start_combobox.grid(row=1, column=0, padx=5, pady=5)
         self.start_combobox.set('')
 
         # Crear etiquetas y combobox para el nodo de fin
-        ttk.Label(frame, text="Nodo de Fin:").grid(row=0, column=1, padx=5, pady=5)
-        self.end_combobox = ttk.Combobox(frame, values=nodos)
+        ttk.Label(self.frame, text="Nodo de Fin:").grid(row=0, column=1, padx=5, pady=5)
+        self.end_combobox = ttk.Combobox(self.frame, values=nodos)
         self.end_combobox.grid(row=1, column=1, padx=5, pady=5)
         self.end_combobox.set('')
-
-
-        ttk.Label(frame, text="Busquedas Informadas:").grid(row=0, column=3, padx=5, pady=5)
-        # Crear el Combobox con solo los valores del diccionario
-        values = list(busquedas.values())
-        self.busqueda_combobox = ttk.Combobox(frame, values=values)
-        self.busqueda_combobox.grid(row=1, column=3, padx=5, pady=5)
-        self.busqueda_combobox.set('')  # Dejar en blanco por defecto
-
-        # Diccionario inverso para obtener la llave a partir del valor seleccionado
-        value_to_key = {v: k for k, v in busquedas.items()}
-
-        # Función para manejar la selección
-        def on_selection(event):
-            # Obtener el valor seleccionado
-            selected_value = self.busqueda_combobox.get()
-            # Obtener la clave asociada con el valor seleccionado
-            self.busqueda_selected_key = value_to_key.get(selected_value, None)
-
-        # Vincular la función a la selección del Combobox
-        self.busqueda_combobox.bind("<<ComboboxSelected>>", on_selection)
-        max_length = max(len(f"{k}: {v}") for k, v in busquedas.items())
-
-        # Configurar el ancho del combobox basado en la longitud calculada
-        self.busqueda_combobox.config(width=max_length)
 
         # Crear un marco para los botones de limpiar y cerrar
         button_frame = ttk.Frame(self.root)
@@ -224,6 +187,32 @@ class GraphTraversalApp:
             x, y = event.xdata, event.ydata
             print(f"Coordenadas del clic: ({x:.3f}, {y:.3f})")
             
+    def load_busquedas(self, busquedas):
+        ttk.Label(self.frame, text="Busquedas Informadas:").grid(row=0, column=3, padx=5, pady=5)
+        # Crear el Combobox con solo los valores del diccionario
+        values = list(busquedas.values())
+        nombres = [obj.nombre for obj in values]
+        self.busqueda_combobox = ttk.Combobox(self.frame, values=nombres)
+        self.busqueda_combobox.grid(row=1, column=3, padx=5, pady=5)
+        self.busqueda_combobox.set('')  # Dejar en blanco por defecto
+
+        # Diccionario inverso para obtener la llave a partir del valor seleccionado
+        value_to_key = {v.nombre: k for k, v in busquedas.items()}
+
+        # Función para manejar la selección
+        def on_selection(event):
+            # Obtener el valor seleccionado
+            selected_value = self.busqueda_combobox.get()
+            # Obtener la clave asociada con el valor seleccionado
+            self.busqueda_selected_key = value_to_key.get(selected_value, None)
+
+        # Vincular la función a la selección del Combobox
+        self.busqueda_combobox.bind("<<ComboboxSelected>>", on_selection)
+        max_length = max(len(f"{k}") for k in nombres)
+
+        # Configurar el ancho del combobox basado en la longitud calculada
+        self.busqueda_combobox.config(width=max_length)
+
     def toggle_image(self):
         self.draw_graph(check=True)  # Redibujar el grafo cada vez que se cambie el estado del switch
 
