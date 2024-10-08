@@ -127,11 +127,20 @@ class GraphTraversalApp:
                                     command=self.toggle_image).pack(side=tk.LEFT, padx=5)
 
 
-    def draw_graph(self, path_edges=None, path_nodes=None):
+    def draw_graph(self, path_edges=None, path_nodes=None, check=False):
         if self.canvas:
             self.canvas.get_tk_widget().pack_forget()
 
         fig, ax = plt.subplots(figsize=(8, 6))
+
+        start = self.start_combobox.get().strip()  # Obtener el nodo de inicio
+        goal = self.end_combobox.get().strip()      # Obtener el nodo de fin
+        search_type =  self.busqueda_selected_key
+        
+        if start and goal and search_type and check:
+            self.show_result()
+            return
+
 
         if self.show_image.get():
             img = mpimg.imread("resources/map.jpg")  # Ruta de la imagen
@@ -200,6 +209,7 @@ class GraphTraversalApp:
         # Limpiar los campos de entrada
         self.start_combobox.set('')  # Limpiar selección del Combobox de inicio
         self.end_combobox.set('')    # Limpiar selección del Combobox de fin
+        self.busqueda_combobox.set('')
         self.draw_graph()  # Redibujar el grafo sin resaltado
         
         
@@ -215,7 +225,7 @@ class GraphTraversalApp:
             print(f"Coordenadas del clic: ({x:.3f}, {y:.3f})")
             
     def toggle_image(self):
-        self.draw_graph()  # Redibujar el grafo cada vez que se cambie el estado del switch
+        self.draw_graph(check=True)  # Redibujar el grafo cada vez que se cambie el estado del switch
 
 def main():
     root = tk.Tk()
