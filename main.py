@@ -2,6 +2,7 @@
 import tkinter as tk
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg  # Importar la librería para manejar imágenes
 
 # MODULOS
 from tkinter import ttk
@@ -9,11 +10,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import messagebox
 
 # ARCHIVOS
-from grafo import grafo
-from busqueda_amplitud import amplitud
-from busqueda_profundida import profundida
-from busqueda_coste import coste
-from busqueda_iterativa import iterativa
+from Basics.grafo import grafo
+from Busquedas.Informadas.busqueda_amplitud import amplitud
+from Busquedas.Informadas.busqueda_profundida import profundida
+from Busquedas.Informadas.busqueda_coste import coste
+from Busquedas.Informadas.busqueda_iterativa import iterativa
 
 class GraphTraversalApp:
     def __init__(self, root):
@@ -22,9 +23,27 @@ class GraphTraversalApp:
         self.root.state('zoomed')  # Maximizar la ventana
 
         self.graph = self.create_graph()
-        self.pos = nx.spring_layout(self.graph, k=1)  # Posiciones de los nodos para el dibujo
-        self.canvas = None
+        # self.pos = nx.spring_layout(self.graph, k=4, iterations=1000)  # Posiciones de los nodos para el dibujo
+        self.pos = {
+    'boqueron': [-0.528, -0.720],
+    'villa mery': [-0.528, -0.512],
+    'terrazas boqueron': [-0.409, -0.478],
+    'jazmin': [-0.071, -0.090],
+    'la isla': [-0.015, -0.166],
+    'miramar': [0.721, 0.203],
+    'albania': [0.053, -0.377],
+    'la union': [0.164, 0.051],
+    'darlo echandia': [0.080, 0.195],
+    'granada': [0.443, 0.291],
+    'san isidro': [0.464, 0.590],
+    'colina 1': [0.311, 0.824],
+    'colina 2': [0.077, 0.841],
+    'cerros granate': [0.800, 0.841]
+}
 
+        self.canvas = None
+        self.show_image = tk.BooleanVar()
+        self.busqueda_selected_key = ''
         self.labelDistancia = None
 
         self.create_widgets()
@@ -68,11 +87,6 @@ class GraphTraversalApp:
         self.end_combobox.grid(row=1, column=1, padx=5, pady=5)
         self.end_combobox.set('')
 
-        # Crear botones para cada tipo de búsqueda en formato 2x2
-        # ttk.Button(frame, text="Búsqueda en Amplitud (BFS)", command=lambda: self.show_result("BFS")).grid(row=2, column=0, padx=5, pady=5)
-        # ttk.Button(frame, text="Búsqueda en Profundidad (DFS)", command=lambda: self.show_result("DFS")).grid(row=2, column=1, padx=5, pady=5)
-        # ttk.Button(frame, text="Búsqueda de Coste Uniforme (UCS)", command=lambda: self.show_result("UCS")).grid(row=3, column=0, padx=5, pady=5)
-        # ttk.Button(frame, text="Búsqueda en Profundidad Iterativa (IDDFS)", command=lambda: self.show_result("IDDFS")).grid(row=3, column=1, padx=5, pady=5)
 
         ttk.Label(frame, text="Busquedas Informadas:").grid(row=0, column=3, padx=5, pady=5)
         # Crear el Combobox con solo los valores del diccionario
@@ -106,6 +120,11 @@ class GraphTraversalApp:
         ttk.Button(button_frame, text="Limpiar", command=self.clear_entries).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Cerrar", command=self.root.quit).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Buscar", command=self.show_result).pack(side=tk.LEFT, padx=5)
+        
+                # Checkbutton para activar/desactivar la imagen de fondo
+        self.image_switch = ttk.Checkbutton(button_frame, text="Mostrar Imagen de Fondo",
+                                    variable=self.show_image,
+                                    command=self.toggle_image).pack(side=tk.LEFT, padx=5)
 
 
     def draw_graph(self, path_edges=None, path_nodes=None):
@@ -113,6 +132,12 @@ class GraphTraversalApp:
             self.canvas.get_tk_widget().pack_forget()
 
         fig, ax = plt.subplots(figsize=(8, 6))
+
+        if self.show_image.get():
+            img = mpimg.imread("resources/map.jpg")  # Ruta de la imagen
+            img_extent = [-1, 1, -1, 1]  # Ajustar esto a las coordenadas que deseas usar para la imagen
+            ax.imshow(img, extent=img_extent, aspect='auto', zorder=-1)  # Dibujar la imagen en el fondo
+
 
         nx.draw(self.graph, self.pos, with_labels=True, node_color='orange', node_size=1000, font_size=8,
                 font_weight='bold', ax=ax)
@@ -128,11 +153,23 @@ class GraphTraversalApp:
         self.canvas = FigureCanvasTkAgg(fig, master=self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.canvas.mpl_connect("button_press_event", self.on_click)
+
 
     def show_result(self):
         start = self.start_combobox.get().strip()  # Obtener el nodo de inicio
         goal = self.end_combobox.get().strip()      # Obtener el nodo de fin
         search_type =  self.busqueda_selected_key
+        result = None
+
+        if not start:
+            self.show_validation('Debe elegir un punto de inicio')
+            return
+        if not goal:
+            self.show_validation('Debe elegir un punto final')
+            return
+
+
 
         if search_type == "BFS":
             result = amplitud(self.graph, start, goal)
@@ -142,6 +179,10 @@ class GraphTraversalApp:
             result = coste(self.graph, start, goal)
         elif search_type == "IDDFS":
             result = iterativa(self.graph, start, goal, max_depth=3)
+        else:
+            self.show_validation(f'Es necesario seleccionar una busqueda')
+            return 
+
 
         # Resaltar el camino encontrado
         if result:
@@ -152,8 +193,9 @@ class GraphTraversalApp:
             if search_type == "UCS":
                 self.show_distance(sum(self.graph[u][v]['weight'] for u, v in path_edges))
         else:
-            self.draw_graph()  # Redibujar el grafo sin resaltado aristas si no se encontró un camino
-
+            self.show_validation('No se encontró un camino')
+            return
+        
     def clear_entries(self):
         # Limpiar los campos de entrada
         self.start_combobox.set('')  # Limpiar selección del Combobox de inicio
@@ -163,7 +205,17 @@ class GraphTraversalApp:
         
     def show_distance(self, total_weight):
         messagebox.showinfo("Distancia Total (UCS)", f"Distancia total recorrida {self.start_combobox.get().strip()} - {self.end_combobox.get().strip()}: {total_weight} metros")
-
+        
+    def show_validation(self, mensaje):
+        messagebox.showinfo("Validación", mensaje)
+    # Método para manejar el evento de clic en el canvas
+    def on_click(self, event):
+        if event.inaxes:  # Verificar que se hizo clic dentro de los ejes del gráfico
+            x, y = event.xdata, event.ydata
+            print(f"Coordenadas del clic: ({x:.3f}, {y:.3f})")
+            
+    def toggle_image(self):
+        self.draw_graph()  # Redibujar el grafo cada vez que se cambie el estado del switch
 
 def main():
     root = tk.Tk()
