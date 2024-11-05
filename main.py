@@ -13,10 +13,10 @@ from tkinter import messagebox
 from Basics.grafo import grafo
 from Basics.PositionDictionary import posiciones
 from Basics.BusquedasDictionary import ProcesosDiccionario as dictionary
-from Busquedas.Informadas.busqueda_amplitud import amplitud
-from Busquedas.Informadas.busqueda_profundida import profundida
-from Busquedas.Informadas.busqueda_coste import coste
-from Busquedas.Informadas.busqueda_iterativa import iterativa
+from Busquedas.NInformadas.busqueda_amplitud import amplitud
+from Busquedas.NInformadas.busqueda_profundida import profundida
+from Busquedas.NInformadas.busqueda_coste import coste
+from Busquedas.NInformadas.busqueda_iterativa import iterativa
 
 class GraphTraversalApp:
     def __init__(self, root):
